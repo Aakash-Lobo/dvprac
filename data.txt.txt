@@ -1,0 +1,83 @@
+Practical 6
+
+Aim: To visualize domestic crimes and crimes that happen on the streets
+Code:
+1. Aim: Code:
+# install.packages("mongolite")
+library(mongolite)
+# install.packages("dplyr")
+library(dplyr)
+# install.packages("ggplot2")
+library(ggplot2)
+library(lubridate)
+library(hms)
+crimedata=mongo(collection="crimes", db="tyit")
+crime = crimedata$aggregate('[{"$group":{"_id":"$Location Description",
+"count":{"$sum":1}}}]')%>%na.omit()%>%arrange(desc(count))%>%head(5)
+# Convert the result to a data frame
+crime = data.frame(crime)
+names(crime)[1] <- "Location"
+ggplot(crime, aes(x = reorder(Location, count), y = count)) +
+geom_bar(stat = "identity", fill = "skyblue") +
+labs(title = "Top 5 Crime Locations",
+x = "Location",
+y = "Number of Crimes")
+
+
+
+Aim: To draw a Graph(weekly - domestic)
+# install.packages("mongolite")
+library(mongolite)
+# install.packages("dplyr")
+library(dplyr)
+# install.packages("ggplot2")
+library(ggplot2)
+library(lubridate)
+library(hms)
+crimedata=mongo(collection="crimes", db="tyit")
+
+domestic= crimedata$find('{"Domestic":true}', fields= '{"_id":0, "Domestic":1, "Date":1}')
+domestic = data.frame(domestic)
+domestic$Date = mdy_hms(domestic$Date)
+domestic$Weekday = weekdays(domestic$Date)
+domestic_counts <- domestic %>%
+group_by(Weekday) %>%
+summarise(count = n())
+domestic_counts <- domestic_counts %>%
+mutate(Weekday = factor(Weekday, levels = c("Monday", "Tuesday", "Wednesday",
+"Thursday", "Friday", "Saturday","Sunday")))
+# Arrange the data by Weekday
+domestic_counts <- domestic_counts %>%
+arrange(Weekday)
+# Plotting using ggplot2
+p <- ggplot(domestic_counts, aes(x = Weekday, y = count)) +
+geom_line(aes(group=2), size=2, color='red') +
+xlab("Weekday") + ylab("Total Domestic Crimes")
+
+Practical 7
+
+# install.packages("mongolite")
+library(mongolite)
+# install.packages("dplyr")
+library(dplyr)
+# install.packages("ggplot2")
+library(ggplot2)
+library(lubridate)
+library(hms)
+crimedata=mongo(collection="crimes", db="tyit")
+
+domestic= crimedata$find('{"Domestic":true}', fields= '{"_id":0, "Domestic":1, "Date":1}')
+domestic = data.frame(domestic)
+domestic$Date = mdy_hms(domestic$Date)
+domestic$Weekday = weekdays(domestic$Date)
+domestic$Hour = hour(domestic$Date)
+hours_crimes = as.data.frame(table(domestic$Weekday,domestic$Hour))
+hours_crimes <- hours_crimes %>%
+mutate(Var1 = factor(Var1, levels = c("Monday", "Tuesday", "Wednesday", "Thursday",
+"Friday", "Saturday","Sunday")))
+hours_crimes <- hours_crimes %>%
+arrange(Var1)
+# Plotting using ggplot2
+p <- ggplot(hours_crimes, aes(x = Var2, y = Freq)) +
+geom_line(aes(group=Var1, color=Var1), size=2) +
+xlab("Weekday") + ylab("Total Domestic Crimes")
